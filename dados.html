@@ -95,29 +95,6 @@
     margin-top: 4px;
   }
 
-  /* Firebase status indicator */
-  .status-bar {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-    font-family: 'Fredoka One', cursive;
-    font-size: .85rem;
-    color: var(--white);
-    letter-spacing: 1px;
-    opacity: .85;
-  }
-  .status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #aaa;
-    transition: background .4s;
-  }
-  .status-dot.connected { background: #2da832; box-shadow: 0 0 8px #2da83288; }
-  .status-dot.error     { background: #e63030; }
 
   main {
     position: relative;
@@ -347,25 +324,6 @@
     margin-bottom: 1px;
   }
 
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: rgba(26,74,110,.92);
-    color: #fff;
-    font-family: 'Fredoka One', cursive;
-    font-size: .95rem;
-    letter-spacing: 1px;
-    padding: 10px 24px;
-    border-radius: 40px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.2);
-    z-index: 999;
-    transition: transform .3s cubic-bezier(.36,1.56,.64,1), opacity .3s;
-    opacity: 0;
-    white-space: nowrap;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
   @media (max-width: 500px) {
     .die { width: 80px; height: 80px; border-radius:16px; }
@@ -394,9 +352,6 @@
 <header>
   <div class="logo">ONLINE DICE</div>
   <div class="subtitle">VIRTUAL DICE SIMULATOR</div>
-  <div class="status-bar">
-    <div class="status-dot" id="statusDot"></div>
-    <span id="statusText">Conectando ao controle remoto...</span>
   </div>
 </header>
 
@@ -431,7 +386,6 @@
 
   <button class="btn-roll" id="rollBtn">🎲 ROLL AGAIN!</button>
 
-  <div class="blocked-indicator" id="blockedIndicator">Nenhuma cor bloqueada</div>
 
   <a class="install-banner" href="#" onclick="return false;">
     <span class="install-banner-title">INSTALL APP</span>
@@ -501,21 +455,7 @@
 
   let blockedColors = new Set();
 
-  function showToast(msg) {
-    let toast = document.getElementById('toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'toast';
-      toast.className = 'toast';
-      document.body.appendChild(toast);
-    }
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => toast.classList.remove('show'), 2200);
-  }
 
-  function updateBlockedIndicator() {
     const el = document.getElementById('blockedIndicator');
     if (blockedColors.size === 0) {
       el.textContent = 'Nenhuma cor bloqueada';
@@ -536,7 +476,6 @@
     let palette = [...PALETTES[type]];
     palette = palette.filter(c => !blockedColors.has(c));
     if (palette.length === 0) {
-      showToast('⚠️ Todas bloqueadas! Desbloqueie no celular.');
       palette = [...PALETTES[type]];
     }
     if (theme === 'pastel') palette = palette.map(PASTEL_MAP);
@@ -584,8 +523,6 @@
   // ── Listen to Firebase for blocked colors ──
   const blockedRef = ref(db, 'blockedColors');
   onValue(blockedRef, (snapshot) => {
-    const dot  = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
     dot.className  = 'status-dot connected';
     text.textContent = '📱 Controle remoto conectado';
 
@@ -603,13 +540,8 @@
     const added   = [...blockedColors].filter(c => !prev.has(c));
     const removed = [...prev].filter(c => !blockedColors.has(c));
     const nameMap = Object.fromEntries(ALL_BLOCKABLE.map(x => [x.hex, x.name]));
-    if (added.length)   showToast(`🚫 ${added.map(c => nameMap[c]||c).join(', ')} bloqueada`);
-    if (removed.length) showToast(`✅ ${removed.map(c => nameMap[c]||c).join(', ')} desbloqueada`);
 
-    updateBlockedIndicator();
   }, (error) => {
-    const dot  = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
     dot.className  = 'status-dot error';
     text.textContent = '❌ Erro de conexão';
   });
