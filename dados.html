@@ -9,7 +9,6 @@
   :root {
     --sky: #5bc8f5;
     --sky-dark: #3aa8d8;
-    --sky-light: #a8e4f7;
     --panel: #d6f0fb;
     --panel-border: #7dd6f5;
     --gold: #f5c400;
@@ -55,7 +54,7 @@
   }
   @keyframes float {
     0%   { transform: translateY(110vh) scale(1); opacity:.7; }
-    100% { transform: translateY(-20vh)  scale(1.1); opacity:0; }
+    100% { transform: translateY(-20vh) scale(1.1); opacity:0; }
   }
 
   header {
@@ -94,7 +93,6 @@
     text-shadow: 0 2px 6px rgba(0,0,0,.18);
     margin-top: 4px;
   }
-
 
   main {
     position: relative;
@@ -175,12 +173,12 @@
   }
 
   .die::before {
-    content:'';
-    position:absolute;
-    inset:0;
-    border-radius:16px;
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
     background: linear-gradient(145deg, rgba(255,255,255,.35) 0%, transparent 55%);
-    pointer-events:none;
+    pointer-events: none;
   }
 
   .die-dot {
@@ -194,7 +192,7 @@
   }
 
   @keyframes spinDie {
-    0%   { transform: rotateX(0)   rotateY(0); }
+    0%   { transform: rotateX(0) rotateY(0); }
     25%  { transform: rotateX(360deg) rotateY(180deg); }
     60%  { transform: rotateX(720deg) rotateY(540deg); }
     80%  { transform: rotateX(700deg) rotateY(520deg); }
@@ -222,47 +220,15 @@
     overflow: hidden;
   }
   .btn-roll::after {
-    content:'';
-    position:absolute;
-    inset:0;
+    content: '';
+    position: absolute;
+    inset: 0;
     background: linear-gradient(to bottom, rgba(255,255,255,.28) 0%, transparent 55%);
-    border-radius:14px;
-    pointer-events:none;
+    border-radius: 14px;
+    pointer-events: none;
   }
   .btn-roll:hover  { transform: translateY(-2px); box-shadow: 0 7px 0 var(--gold-dark), 0 12px 24px rgba(200,120,0,.3); }
   .btn-roll:active { transform: translateY(4px);  box-shadow: 0 1px 0 var(--gold-dark); }
-
-  /* Blocked colors indicator */
-  .blocked-indicator {
-    margin-top: 16px;
-    text-align: center;
-    font-family: 'Fredoka One', cursive;
-    font-size: .8rem;
-    color: var(--text-dark);
-    letter-spacing: 1px;
-    opacity: .7;
-    min-height: 24px;
-  }
-  .blocked-dot {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    margin: 0 3px;
-    vertical-align: middle;
-    border: 2px solid rgba(0,0,0,.2);
-    position: relative;
-  }
-  .blocked-dot::after {
-    content: '✕';
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .55rem;
-    color: #c00;
-  }
 
   .install-banner {
     position: relative;
@@ -324,9 +290,8 @@
     margin-bottom: 1px;
   }
 
-
   @media (max-width: 500px) {
-    .die { width: 80px; height: 80px; border-radius:16px; }
+    .die { width: 80px; height: 80px; border-radius: 16px; }
     .die-dot { width: 22px; height: 22px; }
     main { padding: 22px 16px 30px; }
   }
@@ -352,7 +317,6 @@
 <header>
   <div class="logo">ONLINE DICE</div>
   <div class="subtitle">VIRTUAL DICE SIMULATOR</div>
-  </div>
 </header>
 
 <main>
@@ -386,7 +350,6 @@
 
   <button class="btn-roll" id="rollBtn">🎲 ROLL AGAIN!</button>
 
-
   <a class="install-banner" href="#" onclick="return false;">
     <span class="install-banner-title">INSTALL APP</span>
     <span class="install-banner-sub">Fewer ads &amp; instant access.</span>
@@ -403,7 +366,6 @@
   </p>
 </main>
 
-<!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -421,7 +383,6 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // ── Color palettes ──
   const PALETTES = {
     color: ['#f5b800','#e63030','#2da832','#8c30cc','#f07020','#2068d4'],
     warm:  ['#f5b800','#e63030','#f07020','#e85060','#d44010','#f09040'],
@@ -444,40 +405,14 @@
     '#8c30cc':'0 0 18px #bb44ff, 0 0 40px #8800ff88',
   };
 
-  const ALL_BLOCKABLE = [
-    { hex: '#f5b800', name: 'DEAL'       },
-    { hex: '#e63030', name: 'L TRADE'    },
-    { hex: '#2da832', name: 'FAIR TRADE' },
-    { hex: '#8c30cc', name: 'LAST OFFER' },
-    { hex: '#f07020', name: 'NO THANKS'  },
-    { hex: '#2068d4', name: 'ADD MORE'   },
-  ];
-
   let blockedColors = new Set();
-
-
-    const el = document.getElementById('blockedIndicator');
-    if (blockedColors.size === 0) {
-      el.textContent = 'Nenhuma cor bloqueada';
-      return;
-    }
-    el.innerHTML = '🚫 Bloqueadas: ';
-    blockedColors.forEach(hex => {
-      const dot = document.createElement('span');
-      dot.className = 'blocked-dot';
-      dot.style.background = hex;
-      el.appendChild(dot);
-    });
-  }
 
   function getColors() {
     const type  = document.getElementById('typeSelect').value;
     const theme = document.getElementById('themeSelect').value;
     let palette = [...PALETTES[type]];
     palette = palette.filter(c => !blockedColors.has(c));
-    if (palette.length === 0) {
-      palette = [...PALETTES[type]];
-    }
+    if (palette.length === 0) palette = [...PALETTES[type]];
     if (theme === 'pastel') palette = palette.map(PASTEL_MAP);
     return palette;
   }
@@ -520,33 +455,20 @@
 
   document.getElementById('rollBtn').addEventListener('click', rollDice);
 
-  // ── Listen to Firebase for blocked colors ──
+  // Ouve o Firebase silenciosamente, sem nenhuma notificação
   const blockedRef = ref(db, 'blockedColors');
   onValue(blockedRef, (snapshot) => {
-    dot.className  = 'status-dot connected';
-    text.textContent = '📱 Controle remoto conectado';
-
     const data = snapshot.val();
-    const prev = new Set(blockedColors);
     blockedColors = new Set();
-
     if (data) {
       Object.keys(data).forEach(key => {
-        if (data[key] === true) { const hex = "#" + key.slice(1); blockedColors.add(hex); }
+        if (data[key] === true) {
+          blockedColors.add('#' + key.slice(1));
+        }
       });
     }
-
-    // Show toast if something changed
-    const added   = [...blockedColors].filter(c => !prev.has(c));
-    const removed = [...prev].filter(c => !blockedColors.has(c));
-    const nameMap = Object.fromEntries(ALL_BLOCKABLE.map(x => [x.hex, x.name]));
-
-  }, (error) => {
-    dot.className  = 'status-dot error';
-    text.textContent = '❌ Erro de conexão';
   });
 
-  // Init
   rollDice();
 </script>
 </body>
