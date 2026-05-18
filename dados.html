@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Dice – Virtual Dice Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #5bc8f5;
+    --sky-dark: #3aa8d8;
+    --sky-light: #a8e4f7;
+    --panel: #d6f0fb;
+    --panel-border: #7dd6f5;
+    --gold: #f5c400;
+    --gold-dark: #d4a000;
+    --gold-outline: #a07000;
+    --white: #fff;
+    --text-dark: #1a4a6e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--sky);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 60px;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,.18) 0 60px, transparent 60px),
+      radial-gradient(circle at 80% 70%, rgba(255,255,255,.13) 0 80px, transparent 80px),
+      radial-gradient(circle at 50% 10%, rgba(255,255,255,.10) 0 40px, transparent 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bubble {
+    position: fixed;
+    border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    animation: float linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes float {
+    0%   { transform: translateY(110vh) scale(1); opacity:.7; }
+    100% { transform: translateY(-20vh)  scale(1.1); opacity:0; }
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 38px 20px 10px;
+    width: 100%;
+  }
+
+  .logo {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(3rem, 10vw, 5.5rem);
+    color: var(--gold);
+    text-shadow:
+      -3px -3px 0 var(--gold-outline),
+       3px -3px 0 var(--gold-outline),
+      -3px  3px 0 var(--gold-outline),
+       3px  3px 0 var(--gold-outline),
+       0    6px 0 var(--gold-dark),
+       0   10px 18px rgba(0,0,0,.25);
+    letter-spacing: 2px;
+    animation: logoPop .6s cubic-bezier(.36,1.56,.64,1) both;
+    user-select: none;
+  }
+  @keyframes logoPop {
+    from { transform: scale(.5); opacity:0; }
+    to   { transform: scale(1);  opacity:1; }
+  }
+
+  .subtitle {
+    font-family: 'Fredoka One', cursive;
+    color: var(--white);
+    font-size: clamp(1rem, 3.5vw, 1.4rem);
+    letter-spacing: 4px;
+    text-shadow: 0 2px 6px rgba(0,0,0,.18);
+    margin-top: 4px;
+  }
+
+  /* Firebase status indicator */
+  .status-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-family: 'Fredoka One', cursive;
+    font-size: .85rem;
+    color: var(--white);
+    letter-spacing: 1px;
+    opacity: .85;
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #aaa;
+    transition: background .4s;
+  }
+  .status-dot.connected { background: #2da832; box-shadow: 0 0 8px #2da83288; }
+  .status-dot.error     { background: #e63030; }
+
+  main {
+    position: relative;
+    z-index: 1;
+    background: var(--panel);
+    border: 4px solid var(--panel-border);
+    border-radius: 28px;
+    padding: 28px 28px 32px;
+    width: min(600px, 94vw);
+    margin-top: 24px;
+    box-shadow: 0 8px 40px rgba(0,80,160,.18), 0 2px 0 rgba(255,255,255,.6) inset;
+  }
+
+  .section-title {
+    font-family: 'Fredoka One', cursive;
+    color: var(--text-dark);
+    font-size: clamp(1.2rem, 4vw, 1.6rem);
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 18px;
+    text-shadow: 0 2px 0 rgba(255,255,255,.8);
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+
+  select {
+    font-family: 'Fredoka One', cursive;
+    font-size: .95rem;
+    color: var(--text-dark);
+    background: var(--white);
+    border: 3px solid var(--sky-dark);
+    border-radius: 12px;
+    padding: 10px 32px 10px 14px;
+    appearance: none;
+    cursor: pointer;
+    flex: 1 1 130px;
+    min-width: 110px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8'%3E%3Cpath d='M0 0l7 8 7-8z' fill='%233aa8d8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    box-shadow: 0 3px 0 var(--sky-dark);
+    transition: box-shadow .1s, transform .1s;
+    letter-spacing: 1px;
+  }
+  select:focus { outline: none; }
+  select:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--sky-dark); }
+
+  .dice-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    min-height: 110px;
+    margin-bottom: 24px;
+  }
+
+  .die-wrap { perspective: 700px; }
+
+  .die {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 0 rgba(0,0,0,.28), 0 8px 20px rgba(0,0,0,.15);
+    border: 7px solid #ffffff;
+    transition: background .3s;
+    transform-style: preserve-3d;
+    user-select: none;
+  }
+
+  .die::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:16px;
+    background: linear-gradient(145deg, rgba(255,255,255,.35) 0%, transparent 55%);
+    pointer-events:none;
+  }
+
+  .die-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.92);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.25);
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes spinDie {
+    0%   { transform: rotateX(0)   rotateY(0); }
+    25%  { transform: rotateX(360deg) rotateY(180deg); }
+    60%  { transform: rotateX(720deg) rotateY(540deg); }
+    80%  { transform: rotateX(700deg) rotateY(520deg); }
+    90%  { transform: rotateX(715deg) rotateY(535deg); }
+    100% { transform: rotateX(720deg) rotateY(540deg); }
+  }
+  .die.spinning { animation: spinDie .7s cubic-bezier(.36,.07,.19,.97) both; }
+
+  .btn-roll {
+    display: block;
+    width: 100%;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    color: var(--text-dark);
+    background: linear-gradient(160deg, #f5c400 0%, #f0a800 100%);
+    border: none;
+    border-radius: 14px;
+    padding: 15px 32px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 var(--gold-dark), 0 8px 20px rgba(200,120,0,.25);
+    text-shadow: 0 1px 0 rgba(255,255,255,.3);
+    transition: transform .12s, box-shadow .12s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-roll::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: linear-gradient(to bottom, rgba(255,255,255,.28) 0%, transparent 55%);
+    border-radius:14px;
+    pointer-events:none;
+  }
+  .btn-roll:hover  { transform: translateY(-2px); box-shadow: 0 7px 0 var(--gold-dark), 0 12px 24px rgba(200,120,0,.3); }
+  .btn-roll:active { transform: translateY(4px);  box-shadow: 0 1px 0 var(--gold-dark); }
+
+  /* Blocked colors indicator */
+  .blocked-indicator {
+    margin-top: 16px;
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: .8rem;
+    color: var(--text-dark);
+    letter-spacing: 1px;
+    opacity: .7;
+    min-height: 24px;
+  }
+  .blocked-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    margin: 0 3px;
+    vertical-align: middle;
+    border: 2px solid rgba(0,0,0,.2);
+    position: relative;
+  }
+  .blocked-dot::after {
+    content: '✕';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .55rem;
+    color: #c00;
+  }
+
+  .install-banner {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+    margin: 12px auto 0;
+    background: var(--sky-dark);
+    border-radius: 50px;
+    padding: 10px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #2a88b8, 0 4px 14px rgba(0,80,130,.18);
+    text-decoration: none;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .install-banner:hover  { transform: translateY(-2px); box-shadow: 0 5px 0 #2a88b8, 0 8px 20px rgba(0,80,130,.24); }
+  .install-banner:active { transform: translateY(2px);  box-shadow: 0 1px 0 #2a88b8; }
+  .install-banner-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: var(--white);
+    letter-spacing: 2px;
+    text-shadow: 0 1px 4px rgba(0,0,0,.18);
+  }
+  .install-banner-sub {
+    font-family: 'Nunito', sans-serif;
+    font-size: .75rem;
+    color: rgba(255,255,255,.85);
+    letter-spacing: .5px;
+    margin-top: 1px;
+  }
+
+  .possible-colors {
+    font-family: 'Nunito', sans-serif;
+    font-size: .82rem;
+    color: var(--text-dark);
+    text-align: center;
+    margin-top: 14px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    line-height: 1.6;
+  }
+  .possible-colors span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .color-dot {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    vertical-align: middle;
+    margin-bottom: 1px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(26,74,110,.92);
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    font-size: .95rem;
+    letter-spacing: 1px;
+    padding: 10px 24px;
+    border-radius: 40px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    z-index: 999;
+    transition: transform .3s cubic-bezier(.36,1.56,.64,1), opacity .3s;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  @media (max-width: 500px) {
+    .die { width: 80px; height: 80px; border-radius:16px; }
+    .die-dot { width: 22px; height: 22px; }
+    main { padding: 22px 16px 30px; }
+  }
+</style>
+</head>
+<body>
+
+<script>
+(function(){
+  const sizes=[40,60,30,80,50,35,70];
+  const delays=[0,3,6,2,9,5,12,1,8,4];
+  const lefts=[5,15,25,35,45,55,65,75,85,92];
+  for(let i=0;i<10;i++){
+    const b=document.createElement('div');
+    b.className='bubble';
+    const s=sizes[i%sizes.length];
+    b.style.cssText=`width:${s}px;height:${s}px;left:${lefts[i]}%;animation-duration:${12+i*1.5}s;animation-delay:${delays[i]}s`;
+    document.body.appendChild(b);
+  }
+})();
+</script>
+
+<header>
+  <div class="logo">ONLINE DICE</div>
+  <div class="subtitle">VIRTUAL DICE SIMULATOR</div>
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Conectando ao controle remoto...</span>
+  </div>
+</header>
+
+<main>
+  <div class="section-title">🎲 ROLL COLOR DICE</div>
+
+  <div class="controls">
+    <select id="qtySelect">
+      <option value="1">1 DICE</option>
+      <option value="2">2 DICE</option>
+      <option value="3">3 DICE</option>
+      <option value="4" selected>4 DICE</option>
+      <option value="5">5 DICE</option>
+      <option value="6">6 DICE</option>
+    </select>
+
+    <select id="typeSelect">
+      <option value="color" selected>COLOR DICE</option>
+      <option value="warm">WARM COLORS</option>
+      <option value="cool">COOL COLORS</option>
+    </select>
+
+    <select id="themeSelect">
+      <option value="" disabled selected>SELECT THEME</option>
+      <option value="vivid">VIVID</option>
+      <option value="pastel">PASTEL</option>
+      <option value="neon">NEON</option>
+    </select>
+  </div>
+
+  <div class="dice-grid" id="diceGrid"></div>
+
+  <button class="btn-roll" id="rollBtn">🎲 ROLL AGAIN!</button>
+
+  <div class="blocked-indicator" id="blockedIndicator">Nenhuma cor bloqueada</div>
+
+  <a class="install-banner" href="#" onclick="return false;">
+    <span class="install-banner-title">INSTALL APP</span>
+    <span class="install-banner-sub">Fewer ads &amp; instant access.</span>
+  </a>
+
+  <p class="possible-colors">
+    Possible colors are:
+    <span><span class="color-dot" style="background:#e63030"></span> Red,</span>
+    <span><span class="color-dot" style="background:#f07020"></span> Orange,</span>
+    <span><span class="color-dot" style="background:#f5b800"></span> Yellow,</span>
+    <span><span class="color-dot" style="background:#2da832"></span> Green,</span>
+    <span><span class="color-dot" style="background:#2068d4"></span> Blue</span>
+    and <span><span class="color-dot" style="background:#8c30cc"></span> Purple.</span>
+  </p>
+</main>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAGmDWTxfjzg82owcefvei2vdYfz-RVW2E",
+    authDomain: "online-5c801.firebaseapp.com",
+    databaseURL: "https://online-5c801-default-rtdb.firebaseio.com",
+    projectId: "online-5c801",
+    storageBucket: "online-5c801.firebasestorage.app",
+    messagingSenderId: "785189068072",
+    appId: "1:785189068072:web:c9024d78b8771100044id",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  // ── Color palettes ──
+  const PALETTES = {
+    color: ['#f5b800','#e63030','#2da832','#8c30cc','#f07020','#2068d4'],
+    warm:  ['#f5b800','#e63030','#f07020','#e85060','#d44010','#f09040'],
+    cool:  ['#2068d4','#2da832','#8c30cc','#3090e0','#20b8b0','#5048d4'],
+  };
+
+  const PASTEL_MAP = c => {
+    const hex = c.replace('#','');
+    const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+    const mix = v => Math.round(v*.55 + 255*.45).toString(16).padStart(2,'0');
+    return `#${mix(r)}${mix(g)}${mix(b)}`;
+  };
+
+  const NEON_GLOW = {
+    '#e63030':'0 0 18px #ff4444, 0 0 40px #ff000088',
+    '#2da832':'0 0 18px #44ff44, 0 0 40px #00ff0088',
+    '#f5b800':'0 0 18px #ffee00, 0 0 40px #ffcc0088',
+    '#2068d4':'0 0 18px #4488ff, 0 0 40px #0044ff88',
+    '#f07020':'0 0 18px #ff8833, 0 0 40px #ff660088',
+    '#8c30cc':'0 0 18px #bb44ff, 0 0 40px #8800ff88',
+  };
+
+  const ALL_BLOCKABLE = [
+    { hex: '#f5b800', name: 'DEAL'       },
+    { hex: '#e63030', name: 'L TRADE'    },
+    { hex: '#2da832', name: 'FAIR TRADE' },
+    { hex: '#8c30cc', name: 'LAST OFFER' },
+    { hex: '#f07020', name: 'NO THANKS'  },
+    { hex: '#2068d4', name: 'ADD MORE'   },
+  ];
+
+  let blockedColors = new Set();
+
+  function showToast(msg) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function updateBlockedIndicator() {
+    const el = document.getElementById('blockedIndicator');
+    if (blockedColors.size === 0) {
+      el.textContent = 'Nenhuma cor bloqueada';
+      return;
+    }
+    el.innerHTML = '🚫 Bloqueadas: ';
+    blockedColors.forEach(hex => {
+      const dot = document.createElement('span');
+      dot.className = 'blocked-dot';
+      dot.style.background = hex;
+      el.appendChild(dot);
+    });
+  }
+
+  function getColors() {
+    const type  = document.getElementById('typeSelect').value;
+    const theme = document.getElementById('themeSelect').value;
+    let palette = [...PALETTES[type]];
+    palette = palette.filter(c => !blockedColors.has(c));
+    if (palette.length === 0) {
+      showToast('⚠️ Todas bloqueadas! Desbloqueie no celular.');
+      palette = [...PALETTES[type]];
+    }
+    if (theme === 'pastel') palette = palette.map(PASTEL_MAP);
+    return palette;
+  }
+
+  function applyDieStyle(die, color, theme) {
+    die.style.background = color;
+    if (theme === 'neon') {
+      const glow = NEON_GLOW[color] || `0 0 18px ${color}88, 0 0 40px ${color}55`;
+      die.style.boxShadow = `0 6px 0 rgba(0,0,0,.3), ${glow}`;
+    } else {
+      die.style.boxShadow = '';
+    }
+  }
+
+  function rollDice() {
+    const qty     = +document.getElementById('qtySelect').value;
+    const grid    = document.getElementById('diceGrid');
+    const theme   = document.getElementById('themeSelect').value;
+    const palette = getColors();
+    const chosen  = Array.from({length: qty}, () => palette[Math.floor(Math.random()*palette.length)]);
+
+    grid.innerHTML = '';
+    chosen.forEach((color, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'die-wrap';
+      const die = document.createElement('div');
+      die.className = 'die';
+      applyDieStyle(die, color, theme);
+      const dot = document.createElement('div');
+      dot.className = 'die-dot';
+      die.appendChild(dot);
+      wrap.appendChild(die);
+      grid.appendChild(wrap);
+      setTimeout(() => {
+        die.classList.add('spinning');
+        die.addEventListener('animationend', () => die.classList.remove('spinning'), {once:true});
+      }, i * 80);
+    });
+  }
+
+  document.getElementById('rollBtn').addEventListener('click', rollDice);
+
+  // ── Listen to Firebase for blocked colors ──
+  const blockedRef = ref(db, 'blockedColors');
+  onValue(blockedRef, (snapshot) => {
+    const dot  = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    dot.className  = 'status-dot connected';
+    text.textContent = '📱 Controle remoto conectado';
+
+    const data = snapshot.val();
+    const prev = new Set(blockedColors);
+    blockedColors = new Set();
+
+    if (data) {
+      Object.keys(data).forEach(key => {
+        if (data[key] === true) blockedColors.add(key);
+      });
+    }
+
+    // Show toast if something changed
+    const added   = [...blockedColors].filter(c => !prev.has(c));
+    const removed = [...prev].filter(c => !blockedColors.has(c));
+    const nameMap = Object.fromEntries(ALL_BLOCKABLE.map(x => [x.hex, x.name]));
+    if (added.length)   showToast(`🚫 ${added.map(c => nameMap[c]||c).join(', ')} bloqueada`);
+    if (removed.length) showToast(`✅ ${removed.map(c => nameMap[c]||c).join(', ')} desbloqueada`);
+
+    updateBlockedIndicator();
+  }, (error) => {
+    const dot  = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    dot.className  = 'status-dot error';
+    text.textContent = '❌ Erro de conexão';
+  });
+
+  // Init
+  rollDice();
+</script>
+</body>
+</html>
