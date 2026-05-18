@@ -595,7 +595,7 @@
 
     if (data) {
       Object.keys(data).forEach(key => {
-        if (data[key] === true) blockedColors.add(key);
+        if (data[key] === true) { const hex = "#" + key.slice(1); blockedColors.add(hex); }
       });
     }
 
